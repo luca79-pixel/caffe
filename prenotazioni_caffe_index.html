@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prenotazione Caffè — Intervallo (Scuola Media)</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#ffffff;--accent:#2b6ef6;--muted:#6b7280}
+    *{box-sizing:border-box}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:#0f172a}
+    .container{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+    .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#6c8cff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:4px 0 0;color:var(--muted)}
+    .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(12,15,30,0.06);margin-bottom:16px}
+
+    form.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=text], input[type=time], input[type=date], select{width:100%;padding:10px;border:1px solid #e6e9f2;border-radius:8px;font-size:15px}
+    .row{display:flex;gap:12px}
+    .btn{display:inline-block;padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:white;font-weight:600;cursor:pointer}
+    .btn.secondary{background:#eef2ff;color:var(--accent);border:1px solid rgba(43,110,246,0.12)}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid #e6e9f2}
+
+    .list{margin-top:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #f1f3f8}
+    th{font-size:13px;color:var(--muted);font-weight:600}
+    td small{display:block;color:var(--muted);font-size:12px}
+
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#f3f6ff;color:#123; font-size:13px}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+
+    @media (max-width:560px){header{flex-direction:column;align-items:flex-start}.row{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">☕</div>
+      <div>
+        <h1>Prenotazione Caffè Special</h1>
+        <p class="lead">I docenti delle medie di Sabbio e Camozzi possono prenotare il proprio caffè</p>
+      </div>
+    </header>
+
+    <div class="card" id="formCard">
+      <form id="bookingForm" class="grid" autocomplete="off">
+        <div>
+          <label for="teacher">Docente (nome)</label>
+          <input id="teacher" type="text" placeholder="Es. Mario Rossi" />
+        </div>
+
+        <div>
+          <label for="classroom">Classe</label>
+          <input id="classroom" type="text" placeholder="Es. 2A, 3B" required />
+        </div>
+
+        <div>
+          <label for="date">Data</label>
+          <input id="date" type="date" required />
+        </div>
+
+        <div>
+          <label for="time">Orario (ora dell'intervallo)</label>
+          <input id="time" type="time" required />
+        </div>
+
+        <div>
+          <label for="beverage">Bevanda</label>
+          <select id="beverage" required>
+            <option value="Espresso">Espresso</option>
+            <option value="Lungo">Lungo</option>
+            <option value="Decaffeinato">Decaffeinato</option>
+            <option value="Cappuccino">Cappuccino</option>
+            <option value="Ginseng">Ginseng</option>
+            <option value="Tè">Tè</option>
+            <option value="Altro">Altro (specificare in note)</option>
+          </select>
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label for="notes">Note (es. zucchero, latte, preferenze)</label>
+          <input id="notes" type="text" placeholder="Es. 1 zucchero, senza latte..." />
+        </div>
+
+        <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center">
+          <button class="btn" id="submitBtn" type="submit">Prenota</button>
+          <button class="btn secondary" id="clearForm" type="button">Pulisci</button>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn ghost" id="exportCsv" type="button">Esporta CSV</button>
+            <button class="btn ghost" id="importJson" type="button">Importa JSON</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <h3 style="margin:0">Lista Prenotazioni</h3>
+          <p class="lead" style="margin:6px 0 0">Ordina, filtra o cancella singole prenotazioni.</p>
+        </div>
+        <div class="controls">
+          <label class="pill">Totale: <span id="count">0</span></label>
+          <select id="filterClass"><option value="">Tutte le classi</option></select>
+          <select id="filterDate"><option value="">Tutte le date</option></select>
+          <button class="btn ghost" id="clearAll">Svuota tutte</button>
+        </div>
+      </div>
+
+      <div class="list" id="listWrap">
+        <table id="bookingsTable">
+          <thead>
+            <tr><th>Docente / Classe</th><th>Data • Orario</th><th>Bevanda</th><th>Note</th><th></th></tr>
+          </thead>
+          <tbody id="bookingsBody">
+            <!-- rows -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <footer>
+      <small>Questa app è pensata per funzionare offline su un sito statico (es. GitHub Pages, server scolastico). Le prenotazioni sono memorizzate nel browser (localStorage).</small>
+    </footer>
+  </div>
+
+  <script>
+    // Simple static booking app using localStorage
+    const LS_KEY = 'prenotazioni_caffe_v1';
+
+    const $ = id => document.getElementById(id);
+    const form = $('bookingForm');
+    const teacherInput = $('teacher');
+    const classInput = $('classroom');
+    const dateInput = $('date');
+    const timeInput = $('time');
+    const bevInput = $('beverage');
+    const notesInput = $('notes');
+    const body = $('bookingsBody');
+    const count = $('count');
+    const filterClass = $('filterClass');
+    const filterDate = $('filterDate');
+
+    function load() {
+      const raw = localStorage.getItem(LS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function save(items){ localStorage.setItem(LS_KEY, JSON.stringify(items)); }
+
+    function formatDate(d){
+      const dt = new Date(d);
+      if (isNaN(dt)) return d;
+      return dt.toLocaleDateString();
+    }
+
+    function render(){
+      const items = load();
+      const fc = filterClass.value;
+      const fd = filterDate.value;
+      body.innerHTML = '';
+      const filtered = items.filter(it => (fc? it.classroom===fc : true) && (fd? it.date===fd : true));
+      filtered.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
+      for (const it of filtered){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(it.teacher||'—')}</strong><small>${escapeHtml(it.classroom)}</small></td>
+          <td>${escapeHtml(it.date)} • <small>${escapeHtml(it.time)}</small></td>
+          <td>${escapeHtml(it.beverage)}</td>
+          <td>${escapeHtml(it.notes||'')}</td>
+          <td style="width:86px;text-align:right"><button class="btn ghost" data-id="${it.id}">Elimina</button></td>
+        `;
+        body.appendChild(tr);
+      }
+      count.textContent = items.length;
+      populateFilters(items);
+    }
+
+    function populateFilters(items){
+      const classes = Array.from(new Set(items.map(i=>i.classroom))).sort();
+      const dates = Array.from(new Set(items.map(i=>i.date))).sort();
+      filterClass.innerHTML = '<option value="">Tutte le classi</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+      filterDate.innerHTML = '<option value="">Tutte le date</option>' + dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+
+    form.addEventListener('submit', e=>{
+      e.preventDefault();
+      // validation
+      const classroom = classInput.value.trim();
+      const date = dateInput.value;
+      const time = timeInput.value;
+      const beverage = bevInput.value;
+      if (!classroom || !date || !time || !beverage){
+        alert('Compila classe, data, orario e bevanda.');
+        return;
+      }
+      // create
+      const items = load();
+      const id = Date.now().toString(36);
+      const rec = { id, teacher: teacherInput.value.trim(), classroom, date, time, beverage, notes: notesInput.value.trim() };
+      items.push(rec);
+      save(items);
+      render();
+      form.reset();
+      // keep today's date for convenience
+      dateInput.value = new Date().toISOString().slice(0,10);
+      alert('Prenotazione salvata.');
+    });
+
+    document.addEventListener('click', e=>{
+      if (e.target.matches('button[data-id]')){
+        const id = e.target.getAttribute('data-id');
+        if (!confirm('Eliminare questa prenotazione?')) return;
+        let items = load();
+        items = items.filter(i=>i.id!==id);
+        save(items);
+        render();
+      }
+    });
+
+    $('clearForm').addEventListener('click', ()=> form.reset());
+    $('clearAll').addEventListener('click', ()=>{
+      if (!confirm('Svuotare tutte le prenotazioni?')) return;
+      localStorage.removeItem(LS_KEY);
+      render();
+    });
+
+    filterClass.addEventListener('change', render);
+    filterDate.addEventListener('change', render);
+
+    // Export CSV
+    $('exportCsv').addEventListener('click', ()=>{
+      const items = load();
+      if (!items.length){ alert('Nessuna prenotazione da esportare.'); return; }
+      const rows = [['id','teacher','classroom','date','time','beverage','notes']];
+      for (const it of items) rows.push([it.id,it.teacher,it.classroom,it.date,it.time,it.beverage,it.notes]);
+      const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'prenotazioni_caffe.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    // Import JSON (simple) — allows restoring a saved JSON array
+    $('importJson').addEventListener('click', ()=>{
+      const txt = prompt('Incolla qui il contenuto JSON delle prenotazioni (array)');
+      if (!txt) return;
+      try{
+        const arr = JSON.parse(txt);
+        if (!Array.isArray(arr)) throw new Error('JSON non è un array');
+        save(arr);
+        render();
+        alert('Importazione completata.');
+      }catch(err){ alert('Errore importazione: '+err.message); }
+    });
+
+    // initialize default date to today
+    const today = new Date().toISOString().slice(0,10);
+    dateInput.value = today;
+
+    // initial render
+    render();
+  </script>
+</body>
+</html>
