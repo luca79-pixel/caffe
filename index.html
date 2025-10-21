@@ -1,26 +1,219 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/NUOVO_CODICE/exec";
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prenotazione Caffè — Scuola Media</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --accent: #2b6ef6;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      margin: 0;
+      background: var(--bg);
+      color: #0f172a;
+    }
+    .container {
+      max-width: 960px;
+      margin: 28px auto;
+      padding: 20px;
+    }
+    header {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .logo {
+      width: 56px; height: 56px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #6c8cff);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 24px;
+    }
+    h1 { font-size: 20px; margin: 0; }
+    p.lead { margin: 4px 0 0; color: var(--muted); }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(12,15,30,0.06);
+      margin-bottom: 16px;
+    }
+    form.grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #e6e9f2;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 0;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn.secondary { background:#eef2ff; color:var(--accent); border:1px solid rgba(43,110,246,0.12); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f1f3f8; }
+    th { font-size: 13px; color: var(--muted); font-weight: 600; }
+    td small { display:block; color:var(--muted); font-size:12px; }
+    footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
+    @media (max-width:560px){header{flex-direction:column;align-items:flex-start}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">☕</div>
+      <div>
+        <h1>Prenotazione Caffè - Intervallo</h1>
+        <p class="lead">Le prenotazioni vengono salvate su Google Sheets e aggiornate ogni 15 secondi.</p>
+      </div>
+    </header>
 
-function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = JSON.parse(e.postData.contents);
-  sheet.appendRow([
-    new Date(),
-    data.teacher,
-    data.classroom,
-    data.date,
-    data.time,
-    data.beverage,
-    data.notes
-  ]);
-  return ContentService.createTextOutput(JSON.stringify({status: 'ok'}))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+    <div class="card">
+      <form id="bookingForm" class="grid" autocomplete="off">
+        <div>
+          <label for="teacher">Docente</label>
+          <input id="teacher" type="text" placeholder="Es. Mario Rossi" required />
+        </div>
 
-function doGet() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const rows = sheet.getDataRange().getValues();
-  const headers = rows.shift();
-  const data = rows.map(r => Object.fromEntries(r.map((v,i)=>[headers[i], v])));
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+        <div>
+          <label for="classroom">Classe</label>
+          <input id="classroom" type="text" placeholder="Es. 2A, 3B" required />
+        </div>
+
+        <div>
+          <label for="date">Data</label>
+          <input id="date" type="date" required />
+        </div>
+
+        <div>
+          <label for="time">Orario</label>
+          <input id="time" type="time" required />
+        </div>
+
+        <div>
+          <label for="beverage">Bevanda</label>
+          <select id="beverage" required>
+            <option value="Espresso">Espresso</option>
+            <option value="Lungo">Lungo</option>
+            <option value="Decaffeinato">Decaffeinato</option>
+            <option value="Cappuccino">Cappuccino</option>
+            <option value="Ginseng">Ginseng</option>
+            <option value="Tè">Tè</option>
+            <option value="Altro">Altro</option>
+          </select>
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label for="notes">Note</label>
+          <input id="notes" type="text" placeholder="Es. 1 zucchero, senza latte..." />
+        </div>
+
+        <div style="grid-column:1/-1">
+          <button class="btn" type="submit">Prenota</button>
+          <button class="btn secondary" type="reset">Pulisci</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Lista Prenotazioni</h3>
+      <table id="bookingsTable">
+        <thead>
+          <tr><th>Docente / Classe</th><th>Data • Ora</th><th>Bevanda</th><th>Note</th></tr>
+        </thead>
+        <tbody id="bookingsBody"></tbody>
+      </table>
+      <p class="lead" style="font-size:13px;margin-top:10px;color:var(--muted)">Aggiornamento automatico ogni 15s</p>
+    </div>
+
+    <footer>
+      <small>© Scuola Media “Carducci” — Prenotazioni Caffè condivise via Google Sheets.</small>
+    </footer>
+  </div>
+
+  <script>
+    const SCRIPT_URL = https://script.google.com/macros/s/AKfycbwfRgeEgzCxpu0Y3sSjS6uYcCP9MXKcVQXIJWbi2yXEyTfFJYnJ33DdptqbS0fmbf9Fqg/exec
+
+
+    const form = document.getElementById("bookingForm");
+    const tbody = document.getElementById("bookingsBody");
+    const dateInput = document.getElementById("date");
+
+    // Imposta la data di oggi di default
+    dateInput.value = new Date().toISOString().split("T")[0];
+
+    // Invia prenotazione al foglio Google
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = {
+        teacher: form.teacher.value.trim(),
+        classroom: form.classroom.value.trim(),
+        date: form.date.value,
+        time: form.time.value,
+        beverage: form.beverage.value,
+        notes: form.notes.value.trim()
+      };
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.status === "ok") {
+          alert("✅ Prenotazione salvata!");
+          form.reset();
+          dateInput.value = new Date().toISOString().split("T")[0];
+          loadBookings();
+        } else {
+          alert("Errore nel salvataggio.");
+        }
+      } catch (err) {
+        alert("Errore di connessione: " + err.message);
+      }
+    });
+
+    // Carica lista prenotazioni dal foglio
+    async function loadBookings() {
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        tbody.innerHTML = "";
+        data.reverse().forEach(row => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><strong>${row.docente || ""}</strong><small>${row.classe || ""}</small></td>
+            <td>${row.data || ""} • <small>${row.orario || ""}</small></td>
+            <td>${row.bevanda || ""}</td>
+            <td>${row.note || ""}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Errore nel caricamento:", err);
+      }
+    }
+
+    // Aggiornamento automatico ogni 15s
+    loadBookings();
+    setInterval(loadBookings, 15000);
+  </script>
+</body>
+</html>
