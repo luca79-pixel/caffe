@@ -152,15 +152,14 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfRgeEgzCxpu0Y3sSjS6uYcCP9MXKcVQXIJWbi2yXEyTfFJYnJ33DdptqbS0fmbf9Fqg/exec";
 
-
     const form = document.getElementById("bookingForm");
     const tbody = document.getElementById("bookingsBody");
     const dateInput = document.getElementById("date");
 
-    // Imposta la data di oggi di default
+    // Imposta la data odierna di default
     dateInput.value = new Date().toISOString().split("T")[0];
 
-    // Invia prenotazione al foglio Google
+    // Invio prenotazione
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const data = {
@@ -171,73 +170,25 @@
         beverage: form.beverage.value,
         notes: form.notes.value.trim()
       };
-      <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfRgeEgzCxpu0Y3sSjS6uYcCP9MXKcVQXIJWbi2yXEyTfFJYnJ33DdptqbS0fmbf9Fqg/exec";
-
-  const form = document.getElementById("bookingForm");
-  const tbody = document.getElementById("bookingsBody");
-  const dateInput = document.getElementById("date");
-
-  // imposta la data odierna di default
-  dateInput.value = new Date().toISOString().split("T")[0];
-
-  // invio del form
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const data = {
-      teacher: form.teacher.value.trim(),
-      classroom: form.classroom.value.trim(),
-      date: form.date.value,
-      time: form.time.value,
-      beverage: form.beverage.value,
-      notes: form.notes.value.trim()
-    };
-
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      });
-      alert("✅ Prenotazione inviata con successo!");
-      form.reset();
-      dateInput.value = new Date().toISOString().split("T")[0];
-      loadBookings();
-    } catch (err) {
-      alert("❌ Errore nell'invio: " + err.message);
-    }
-  });
-
-  // caricamento prenotazioni da Google Sheet
-  async function loadBookings() {
-    try {
-      const res = await fetch(SCRIPT_URL);
-      const data = await res.json();
-      tbody.innerHTML = "";
-      data.slice(1).forEach((row) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${row["Timestamp"] || ""}</td>
-          <td>${row["Docente"] || ""}</td>
-          <td>${row["Classe"] || ""}</td>
-          <td>${row["Data"] || ""}</td>
-          <td>${row["Orario"] || ""}</td>
-          <td>${row["Bevanda"] || ""}</td>
-          <td>${row["Note"] || ""}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    } catch (err) {
-      console.error("Errore nel caricamento prenotazioni:", err);
-    }
-  }
-
-  // aggiorna ogni 15 secondi
-  setInterval(loadBookings, 15000);
-  loadBookings();
-</script>
-
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" }
+        });
+        const result = await res.json();
+        if (result.status === "ok") {
+          alert("✅ Prenotazione salvata!");
+          form.reset();
+          dateInput.value = new Date().toISOString().split("T")[0];
+          loadBookings();
+        } else {
+          alert("❌ Errore: risposta non valida dallo script.");
+        }
+      } catch (err) {
+        alert("❌ Errore nell'invio: " + err.message);
+      }
+    });
 
     // Carica lista prenotazioni dal foglio
     async function loadBookings() {
@@ -248,10 +199,10 @@
         data.reverse().forEach(row => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td><strong>${row.docente || ""}</strong><small>${row.classe || ""}</small></td>
-            <td>${row.data || ""} • <small>${row.orario || ""}</small></td>
-            <td>${row.bevanda || ""}</td>
-            <td>${row.note || ""}</td>
+            <td><strong>${row.Docente || row.teacher || ""}</strong><small>${row.Classe || row.classroom || ""}</small></td>
+            <td>${row.Data || row.date || ""} • <small>${row.Orario || row.time || ""}</small></td>
+            <td>${row.Bevanda || row.beverage || ""}</td>
+            <td>${row.Note || row.notes || ""}</td>
           `;
           tbody.appendChild(tr);
         });
